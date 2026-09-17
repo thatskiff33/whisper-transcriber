@@ -59,7 +59,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Dry-run install
-        run: python -m pip install --dry-run --ignore-installed --only-binary=:all: --disable-pip-version-check -r requirements.txt
+        # Block scalar: ":all:" followed by a space is a YAML mapping indicator
+        # in a plain scalar, which made the whole workflow file invalid.
+        run: >
+          python -m pip install --dry-run --ignore-installed --only-binary=:all:
+          --disable-pip-version-check -r requirements.txt
 
   lint-python:
     # Rule set lives in ruff.toml.
