@@ -1,21 +1,56 @@
-# Lightweight checks. Nothing here installs torch or the models: the full
-# stack is ~1.5 GB and needs a gated Hugging Face model, so the end-to-end
-# smoke test stays a local step before a release.
+# Lightweight checks on every pull request and on pushes to main. Nothing here
+# installs torch or the models: the full stack is ~1.5 GB and needs a gated
+# Hugging Face model, so the end-to-end smoke test stays a local step before a
+# release (see docs/RELEASING.md). All four job names are required status
+# checks in the branch ruleset.
 name: CI
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
-  pull_request:
 
 permissions:
   contents: read
 
 jobs:
+  check:
+    name: Syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Byte-compile every Python file. Catches syntax errors without importing
+      # torch, faster-whisper or tkinter.
+      - name: Compile Python sources
+        run: python -m compileall -q -f *.py
+
+      # Parse the installer with the PowerShell parser and fail on any error.
+      - name: Parse PowerShell installer
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/install.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_.ToString() }; exit 1 }
+          Write-Host "install.ps1 parsed cleanly"
+
+      # requirements.txt must stay a strict pin list (installer uses --only-binary).
+      - name: Check requirements are fully pinned
+        run: |
+          # Tolerate a UTF-8 BOM at the top of the file (Windows PowerShell writes one).
+          bad=$(sed '1s/^\xEF\xBB\xBF//' requirements.txt | grep -vE '^\s*(#|$)' | grep -vE '^[A-Za-z0-9_.\-]+(\[[^]]+\])?==' || true)
+          if [ -n "$bad" ]; then echo "Unpinned lines:"; echo "$bad"; exit 1; fi
+          echo "All requirements pinned"
+
   resolve:
     # Prove the pinned set still resolves as Windows wheels only, exactly as
-    # install.ps1 installs it. Catches a pin with no wheel or a pin conflict
-    # (e.g. from a Dependabot bump) without downloading the packages.
+    # install.ps1 installs it. Catches a pin with no Windows wheel or a conflict
+    # between pins (e.g. after a Dependabot bump) without downloading packages.
     name: Requirements resolve (wheels only)
     runs-on: windows-latest
     steps:
@@ -27,6 +62,7 @@ jobs:
         run: python -m pip install --dry-run --ignore-installed --only-binary=:all: --disable-pip-version-check -r requirements.txt
 
   lint-python:
+    # Rule set lives in ruff.toml.
     name: Ruff
     runs-on: windows-latest
     steps:
@@ -37,8 +73,8 @@ jobs:
 
   lint-powershell:
     # PSScriptAnalyzer on the installer. Stylistic rules that are wrong for an
-    # interactive console installer are excluded: Write-Host is the point,
-    # and the empty catch blocks are deliberate "try the next candidate" probes.
+    # interactive console installer are excluded: Write-Host is the point, and
+    # the empty catch blocks are deliberate "try the next candidate" probes.
     name: PSScriptAnalyzer
     runs-on: windows-latest
     steps:

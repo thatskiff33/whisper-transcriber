@@ -1,0 +1,84 @@
+# Cuts a GitHub release.
+#
+# Two ways to run it:
+#   1. Actions tab > Release > Run workflow, enter a version such as 0.1.0.
+#      The workflow tags the current main commit as v0.1.0 and publishes the
+#      release. This is the normal route.
+#   2. Push a tag matching v* by hand. The workflow publishes the release for
+#      that tag.
+#
+# Release notes come from the matching "## v<version>" section of CHANGELOG.md.
+# GitHub attaches the source zip and tarball automatically. No other assets are
+# built: the app is installed from source by install.cmd (see README).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the leading v (for example 0.1.0). Must match a CHANGELOG.md heading."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Work out the tag from either trigger.
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            v="${{ inputs.version }}"; v="${v#v}"
+            echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Pull the notes for this version out of CHANGELOG.md. Fails if missing,
+      # so a release can never go out with empty notes.
+      - name: Extract release notes
+        id: notes
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          awk -v h="## $tag" '
+            $0 == h {on=1; next}
+            on && /^## / {exit}
+            on {print}
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "No section '## $tag' found in CHANGELOG.md"; exit 1
+          fi
+          cat notes.md
+
+      # On manual runs, create the tag on the checked-out commit (main by default).
+      - name: Create tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "Tag $tag already exists"; exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Whisper Transcriber $tag"
+          git push origin "$tag"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          gh release create "$tag" \
+            --title "Whisper Transcriber $tag" \
+            --notes-file notes.md \
+            --verify-tag

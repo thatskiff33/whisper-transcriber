@@ -48,7 +48,7 @@ Rename the detected speakers once a file has finished. The first line each perso
 
 ### 1. Get the code
 
-Either download the ZIP from the green Code button on GitHub and extract it, or clone:
+Download the source zip for the latest release from https://github.com/thatskiff33/whisper-transcriber/releases and extract it. Releases are tagged and tested; the green Code button gives you whatever is on `main` right now. Developers can clone instead:
 
 ```bash
 git clone https://github.com/thatskiff33/whisper-transcriber.git
@@ -211,6 +211,9 @@ Delete these and you are back to a clean machine:
 | `requirements.txt` | Full pinned freeze of a known-good environment. Install with wheels only. |
 | `test_diarization.py` | End-to-end command-line check of diarisation plus transcription on one file |
 | `make_icon.py` | Regenerates `whisper.ico` with Pillow |
+| `CHANGELOG.md` | Release notes, one section per version. The Release workflow reads it. |
+| `.github/workflows/` | `ci.yml` runs syntax checks, a wheels-only resolve of the pins, ruff and PSScriptAnalyzer on pull requests; `codeql.yml` scans weekly; `release.yml` tags and publishes a release. See [docs/RELEASING.md](docs/RELEASING.md). |
+| `ruff.toml`, `.github/dependabot.yml` | Lint rule set and Dependabot schedule (monthly, grouped; torch family patch-only) |
 
 Run from source without the shortcut:
 
