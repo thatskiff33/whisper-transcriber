@@ -1,0 +1,17 @@
+# Transcripts are written here by the app. They are private by definition
+# (client recordings) and must never be committed.
+extracted/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local tooling / editor state
+.claude/
+.vscode/
+.idea/
+*.log
+
+# Screenshot build scratch (the committed PNGs live in docs/screenshots)
+docs/screenshots/*.tmp.png
