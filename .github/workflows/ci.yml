@@ -1,7 +1,8 @@
-# Lightweight checks that run on every pull request and on pushes to main.
-# The app needs Windows plus several GB of models to run end to end, so this
-# only proves the code parses. It exists mainly so branch protection has a
-# status check to require.
+# Lightweight checks on every pull request and on pushes to main. Nothing here
+# installs torch or the models: the full stack is ~1.5 GB and needs a gated
+# Hugging Face model, so the end-to-end smoke test stays a local step before a
+# release (see docs/RELEASING.md). All four job names are required status
+# checks in the branch ruleset.
 name: CI
 
 on:
@@ -18,9 +19,9 @@ jobs:
     name: Syntax check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -41,7 +42,49 @@ jobs:
       # requirements.txt must stay a strict pin list (installer uses --only-binary).
       - name: Check requirements are fully pinned
         run: |
-          # The file starts with a UTF-8 BOM (written by Windows PowerShell); strip it first.
+          # Tolerate a UTF-8 BOM at the top of the file (Windows PowerShell writes one).
           bad=$(sed '1s/^\xEF\xBB\xBF//' requirements.txt | grep -vE '^\s*(#|$)' | grep -vE '^[A-Za-z0-9_.\-]+(\[[^]]+\])?==' || true)
           if [ -n "$bad" ]; then echo "Unpinned lines:"; echo "$bad"; exit 1; fi
           echo "All requirements pinned"
+
+  resolve:
+    # Prove the pinned set still resolves as Windows wheels only, exactly as
+    # install.ps1 installs it. Catches a pin with no Windows wheel or a conflict
+    # between pins (e.g. after a Dependabot bump) without downloading packages.
+    name: Requirements resolve (wheels only)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Dry-run install
+        run: python -m pip install --dry-run --ignore-installed --only-binary=:all: --disable-pip-version-check -r requirements.txt
+
+  lint-python:
+    # Rule set lives in ruff.toml.
+    name: Ruff
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/ruff-action@v4
+        with:
+          args: check --output-format github .
+
+  lint-powershell:
+    # PSScriptAnalyzer on the installer. Stylistic rules that are wrong for an
+    # interactive console installer are excluded: Write-Host is the point, and
+    # the empty catch blocks are deliberate "try the next candidate" probes.
+    name: PSScriptAnalyzer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Analyse install.ps1
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -Confirm:$false
+          $findings = Invoke-ScriptAnalyzer -Path install.ps1 -Severity Warning, Error `
+            -ExcludeRule PSAvoidUsingWriteHost, PSAvoidUsingEmptyCatchBlock, PSUseShouldProcessForStateChangingFunctions
+          $findings | Format-Table Severity, RuleName, Line, Message -AutoSize -Wrap
+          if (@($findings).Count -gt 0) { exit 1 }
+          "install.ps1: no findings"

@@ -14,11 +14,17 @@ These settings cannot be applied from a script that only has push access, so set
    - Block force pushes
    - Require linear history
    - Require a pull request before merging. Leave Required approvals at 0 (a solo maintainer cannot approve their own pull request), tick Dismiss stale pull request approvals when new commits are pushed, and tick Require conversation resolution before merging.
-   - Require status checks to pass. Add `Syntax check` (the job in `.github/workflows/ci.yml`). It only appears in the picker after the CI workflow has run once, so add it after the first pull request goes green.
+   - Require status checks to pass. Add the four jobs from `.github/workflows/ci.yml`: `Syntax check`, `Requirements resolve (wheels only)`, `Ruff` and `PSScriptAnalyzer`. They only appear in the picker after the CI workflow has run once, so add them after the first pull request goes green.
 5. Leave Bypass list empty. Admins are then held to the same rules, which is the point.
 6. Click Create.
 
 From then on, all changes reach `main` through a pull request, and nobody can force-push or delete the branch.
+
+Already enabled at repository level (Settings > Advanced Security): Dependabot alerts, Dependabot security updates, secret scanning and push protection. Routine version bumps are configured in `.github/dependabot.yml` (monthly, grouped; torch, torchaudio and torchcodec limited to patch releases). CodeQL runs from `.github/workflows/codeql.yml`.
+
+## Before cutting a release
+
+CI proves the code parses and the pins resolve. It does not run the models. Before tagging a release, run one real recording through the app with speaker identification on, using the pinned set from `requirements.txt` (Update / repair does this), and check the transcript looks right.
 
 ## Cutting a release
 
