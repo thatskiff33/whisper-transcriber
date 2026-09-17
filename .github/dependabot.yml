@@ -1,0 +1,30 @@
+# Security updates are always on (repo setting). This file controls routine
+# version bumps: monthly, grouped into one PR, and never auto-bumping the
+# torch family beyond patch releases - those are ABI-coupled and need a
+# manual end-to-end test on a real recording.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      python-deps:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: torch
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: torchaudio
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: torchcodec
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: pyannote-audio
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

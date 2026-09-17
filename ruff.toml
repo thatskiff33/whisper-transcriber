@@ -1,0 +1,15 @@
+# Lint configuration for CI (ruff). Deliberately modest: catch real mistakes
+# (undefined names, unused imports, bugbear traps, outdated syntax) without
+# forcing a restyle of working code.
+line-length = 100
+target-version = "py310"   # oldest Python the installer accepts
+
+[lint]
+select = ["E", "F", "W", "B", "UP"]
+ignore = [
+    # transcriber_core and test_diarization must set HF_* environment variables
+    # BEFORE importing faster_whisper / pyannote; the late imports are intentional.
+    "E402",
+    # short `log = lambda msg: ...` helpers read fine.
+    "E731",
+]

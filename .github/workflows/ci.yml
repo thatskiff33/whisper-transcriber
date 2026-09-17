@@ -1,0 +1,54 @@
+# Lightweight checks. Nothing here installs torch or the models: the full
+# stack is ~1.5 GB and needs a gated Hugging Face model, so the end-to-end
+# smoke test stays a local step before a release.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    # Prove the pinned set still resolves as Windows wheels only, exactly as
+    # install.ps1 installs it. Catches a pin with no wheel or a pin conflict
+    # (e.g. from a Dependabot bump) without downloading the packages.
+    name: Requirements resolve (wheels only)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Dry-run install
+        run: python -m pip install --dry-run --ignore-installed --only-binary=:all: --disable-pip-version-check -r requirements.txt
+
+  lint-python:
+    name: Ruff
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/ruff-action@v4
+        with:
+          args: check --output-format github .
+
+  lint-powershell:
+    # PSScriptAnalyzer on the installer. Stylistic rules that are wrong for an
+    # interactive console installer are excluded: Write-Host is the point,
+    # and the empty catch blocks are deliberate "try the next candidate" probes.
+    name: PSScriptAnalyzer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Analyse install.ps1
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -Confirm:$false
+          $findings = Invoke-ScriptAnalyzer -Path install.ps1 -Severity Warning, Error `
+            -ExcludeRule PSAvoidUsingWriteHost, PSAvoidUsingEmptyCatchBlock, PSUseShouldProcessForStateChangingFunctions
+          $findings | Format-Table Severity, RuleName, Line, Message -AutoSize -Wrap
+          if (@($findings).Count -gt 0) { exit 1 }
+          "install.ps1: no findings"
