@@ -42,7 +42,7 @@ Rename the detected speakers once a file has finished. The first line each perso
 - About 8 GB of free disk for a fresh install (Python environment plus models).
 - 16 GB RAM for the standard model. 32 GB recommended if you want the larger, slower large-v3 model as well.
 - Internet access during installation only.
-- No admin rights. If Python 3.10 to 3.12 is not already present the installer fetches a per-user copy of Python 3.12.
+- No admin rights. If Python 3.12 is not already present the installer fetches a per-user copy. Other Python versions on the machine are left alone and not used, because several pinned packages no longer ship Windows wheels for 3.10 or 3.11.
 
 ## Install
 
@@ -63,7 +63,7 @@ Double-click `install.cmd`. It runs `install.ps1` with a process-scoped executio
 The installer walks through eight steps and prints what it is doing at each one:
 
 1. Preflight. Checks free disk space, warns about OneDrive, reports installed RAM.
-2. Python. Finds an existing CPython 3.10 to 3.12, or installs Python 3.12 per-user.
+2. Python. Finds an existing CPython 3.12, or installs Python 3.12 per-user.
 3. Virtual environment. Creates `%LOCALAPPDATA%\whisper\.venv`.
 4. Packages. Installs the pinned dependency set from `requirements.txt`, wheels only, about 1.2 GB.
 5. Hugging Face token. Optional, only needed for speaker identification. See the next section.
