@@ -66,14 +66,20 @@ jobs:
           --disable-pip-version-check -r requirements.txt
 
   lint-python:
-    # Rule set lives in ruff.toml.
+    # Rule set lives in ruff.toml. Ruff is installed from PyPI rather than via
+    # a marketplace action: the runner could not resolve astral-sh/ruff-action@v4
+    # (job failed at "Set up job"), and a pip install has no such dependency.
     name: Ruff
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/ruff-action@v4
+      - uses: actions/setup-python@v7
         with:
-          args: check --output-format github .
+          python-version: "3.12"
+      - name: Install ruff
+        run: python -m pip install --disable-pip-version-check ruff
+      - name: Lint
+        run: ruff check --output-format github .
 
   lint-powershell:
     # PSScriptAnalyzer on the installer. Stylistic rules that are wrong for an
