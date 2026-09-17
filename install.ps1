@@ -143,12 +143,14 @@ Write-Ok "Installed RAM: $ramGB GB."
 # --- 2. Find or install Python -------------------------------------------------
 Write-Step 'Step 2/8: Python'
 
-# Returns the exe path if it is CPython 3.10-3.12, else $null.
+# Returns the exe path if it is CPython 3.12, else $null. Only 3.12 is accepted:
+# several pinned packages (numpy, scipy, PyAV, onnxruntime) no longer publish
+# Windows wheels for 3.10/3.11, and the pins are only tested on 3.12.
 function Test-PythonCandidate([string]$exe) {
     if (-not $exe) { return $null }
     try {
         $v = & $exe -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null
-        if ($LASTEXITCODE -eq 0 -and $v -match '^3\.(1[0-2])$') { return (& $exe -c "import sys; print(sys.executable)") }
+        if ($LASTEXITCODE -eq 0 -and $v -match '^3\.12$') { return (& $exe -c "import sys; print(sys.executable)") }
     } catch {}
     return $null
 }
@@ -164,7 +166,7 @@ if (-not $python) { $python = Test-PythonCandidate ((Get-Command python -ErrorAc
 if ($python) {
     Write-Ok "Using Python at $python"
 } else {
-    Write-Note "No suitable Python (3.10-3.12) found. Installing Python $PyVersion per-user (no admin)..."
+    Write-Note "No Python 3.12 found (other versions are not used). Installing Python $PyVersion per-user (no admin)..."
     $installer = Join-Path $env:TEMP "python-$PyVersion-amd64.exe"
     if (-not (Test-Path $installer)) {
         Invoke-WebRequest "https://www.python.org/ftp/python/$PyVersion/python-$PyVersion-amd64.exe" `
