@@ -30,6 +30,11 @@ not edit, push, merge, post comments or use private recordings without task auth
 
 ## Sequence and practical assignments
 
+Start #9 with current dependency-advisory triage as well as compatibility. Verify the
+affected package, version range and actual loading path before selecting a fix or
+recording non-applicability. A passing resolver is not evidence that a security alert
+is resolved. Keep security updates focused and run the affected integration checks.
+
 | Wave | Implementation and order | Exit evidence |
 | --- | --- | --- |
 | A: foundation | Codex: #9 dependency/model-integrity trial. Claude: #8 telemetry/offline isolation, coordinating import/config changes with #9. Keep experiments in separate environments. | Reproducible CPU lock/model load; denied-network inference evidence. No claims based only on source inspection. |
