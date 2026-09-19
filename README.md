@@ -202,6 +202,11 @@ Delete these and you are back to a clean machine:
 
 ## For developers
 
+For the planned meeting workspace, see the [target product plan](docs/WORKSPACE_PLAN.md)
+and [coding and integration sequence](docs/IMPLEMENTATION_PLAN.md). These describe future
+work, including optional GPU evaluation; the features above describe the current app.
+Both Codex and Claude Code use the shared [agent guidelines](AGENTS.md).
+
 | File | Purpose |
 | --- | --- |
 | `transcribe_ui.py` | The tkinter UI (sv-ttk theme, drag and drop, queue, rename dialog, update button) |

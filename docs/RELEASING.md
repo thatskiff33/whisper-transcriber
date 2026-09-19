@@ -2,6 +2,13 @@
 
 This page covers the repository housekeeping that is not code: protecting `main`, cutting a release and the decision not to publish a package.
 
+The source-only packaging instructions below describe the current release. The
+[workspace roadmap](WORKSPACE_PLAN.md) supersedes that packaging choice for the planned
+business release: #11 delivers a private runtime/package, and #26 controls managed versus
+self-service updates and schema migration. Until those changes are implemented and
+verified, the existing source-release workflow remains in use. Publishing a release
+requires separate authorisation from merging roadmap or implementation changes.
+
 ## Protecting main
 
 These settings cannot be applied from a script that only has push access, so set them once in the GitHub UI.
